@@ -3,6 +3,7 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+*/config.json
 # C extensions
 *.so
 
@@ -186,8 +187,11 @@ cython_debug/
 #  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
 #  and can be added to the global gitignore or merged into this file. However, if you prefer, 
 #  you could uncomment the following to ignore the entire vscode folder
-# .vscode/
+.vscode/**/*
 
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+**/.history
 # Ruff stuff:
 .ruff_cache/
 

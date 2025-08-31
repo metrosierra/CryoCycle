@@ -1,0 +1,11 @@
+{
+    
+"tempcontroller": {"address": "COM1",
+                    "baudrate": 9600,
+                    "name": "CTC100",
+                    "make your private config file in this folder called config.json": 0
+                    },
+
+"logging": {"directory": "/log/"}
+
+}

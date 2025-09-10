@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import logging
-from pyvisa import ResourceManager
+from pyvisa import ResourceManager, VisaIOError
 import numpy as np
 import threading
 import time
-# TODO : add check for successful connection
+from queue import Queue
+
+
 
 class GenericInstrument:
 
@@ -20,6 +22,11 @@ class GenericInstrument:
 
         self.rm = ResourceManager()
         self.client = self.handshake()
+
+        self.queue = Queue()
+        self.processing_commands = False
+
+
 
         self.measuring = False
         self.measurement = np.zeros(100)
@@ -53,7 +60,56 @@ class GenericInstrument:
     def read_data(self):
         return None
 ###############################
+    def start_command_processor(self):
+        if not self.processing_commands:
+            self.processing_commands = True
+            self.__command_queue_thread__ = threading.Thread(target=self.__process_commands__, daemon=True)
+            self.__command_queue_thread__.start()
+        return self
 
+    def stop_command_processor(self):
+        self.processing_commands = False
+        return self
+
+    def __process_commands__(self):
+        while self.processing_commands:
+            # get item from queue
+            command = self.queue.get()
+            # execute command
+            if command[-1] == '?' or command[0] == '0':
+                try:
+                    self.response = self.client.query(command)
+                except VisaIOError as e:
+                    print("I/O error on query command:", command)
+            else:
+                try:
+                    self.client.write(command)
+                except VisaIOError as e:
+                    print("I/O error on write command:", command)
+            self.queue.task_done()
+
+        return 
+
+    def write(self, command):
+        if self.client is not None:
+            self.queue.put(command)
+        else:
+            logging.error(f"Cannot write to {self._name}: No connection established.")
+        return self
+    
+    def query(self, command):
+        if self.client is not None:
+            try:
+                response = self.client.query(command)
+                return response
+            except VisaIOError as e:
+                logging.error(f"I/O error on query command: {command}")
+                return None
+        else:
+            logging.error(f"Cannot query {self._name}: No connection established.")
+            return None
+
+############################################
 
     def kill_measurement(self):
         self.measuring = False

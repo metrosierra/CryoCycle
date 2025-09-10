@@ -1,5 +1,6 @@
 import os
 import sys
+import threading
 
 from generic_instrument_dependencies.generic_instrument import GenericInstrument
 
@@ -28,6 +29,26 @@ class TempControl_CTC100(GenericInstrument):
         self.__exit__(None, None, None)
         return
     
+    def get_outputnames(self):
+        return self.query("getOutputNames?")
+
+    def get_output(self):
+        return self.query("getOutput?")
+
+    def populate_data_from_tc(self, type = 'values'):
+        """ Collects data from temp controller and puts it in traits """
+        if type == 'values':
+            tclist = self.getoutput()  
+            tclist = [tclist] # make into list of list
+
+            
+        elif type == 'names':
+            tclist = self.tempcontroller.getoutputnames()
+            tclist = tclist.replace(' ','').split(',')
+            tclist = [tclist] # make into list of list
+
+
+
 
 if __name__ == '__main__':
     with TempControl_CTC100('GPIB::1::INSTR', 'CTC100') as temp_controller:

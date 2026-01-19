@@ -1,0 +1,97 @@
+'the PID parameters of hpump must already be set, for exemple with hpump_init
+
+name 'aaa_evaporate'
+
+'Macro parameters:
+'#HPUMP_ON_K: desried temperature of the pump, in kelvin,
+'#CONDENSATION_WAIT_MIN: time to wait between the moment when the pump is turned on and when we start to check Tr, in minutes.
+'#TR_FALLING_THRESH: the condensation is considering done when Tr reaches this temperature.
+'#SWITCH_ON_T: desired temperature of the switch, in kelvin.
+'#TR_EVAP_LIMIT: limit of Tr to decide when the evaporation is done.
+'#INITIAL_PAUSE: time before the switch is turned on, in munutes.
+'#SECOND_PAUSE: time to wait between the moment when the switch is turned on and when we start to check Tr, in munutes.
+'#TP_START_THRESH: the condensation starts when Tp is below this temperature.
+'#HPUMP_INITIAL_K: hpump PID is set to this temperature until Tr is low enough
+'#HPUMP_ON_TR_THRES: Set hpump PID setpoint to #HPUMP_ON_K only when Tr is below this temperature
+
+' HARD-CODED PARAMETERS FOR MACROING WITHOUT TCC SOFTWARE
+' -- Condensation --
+'Pre-condensation starts when Tp <
+#TP_START_THRESH 30
+
+'Set pump pre-condensation temperature (Tp) to
+#HPUMP_INITIAL_K 25
+
+'Condensation starts when Tr <
+'#HPUMP_ON_TR_THRES 5
+
+'Set pump condensation temperature (Tp) to
+#HPUMP_ON_K 40
+
+'Minimal condensation duration
+#CONDENSATION_WAIT_MIN 30
+
+'Evaporation starts when Tr <
+#TR_FALLING_THRESH 3.8
+		
+
+' -- Evaporation --
+'Initial Pause
+#INITIAL_PAUSE 5
+
+'Set switch temperature (Tsw) to
+#SWITCH_ON_T 20
+
+'Second Pause
+#SECOND_PAUSE 120
+
+'Evaporation is done when Tr >
+#TR_EVAP_LIMIT 2.5
+'End of hard-coded parameters
+
+'abort evaporation if Tr is above this temperature
+#TR_ABORT_LIMIT 5
+
+
+
+'Turn off the pump and the switch if the macro is killed
+abortMacro (hpump.off switch.off)
+
+switch.off
+hpump.off
+
+OutputEnable on
+
+popup "Waiting for Tp to fall!"
+while (tp > #TP_START_THRESH && tr > #HPUMP_ON_TR_THRES) {
+  waitforsample
+}
+
+popup "Waiting for Tr to fall!"
+while (tr > #TR_FALLING_THRESH) {
+  waitforsample
+}
+
+
+if (tr > #TR_ABORT_LIMIT) {
+    popup "Tr too high, aborting evaporation macro!"
+    abort
+}
+
+
+switch.pid.setpoint #SWITCH_ON_T
+switch.pid.mode on
+
+pause #SECOND_PAUSE min
+
+if(tr > #TR_EVAP_LIMIT) {
+   popup "Error: evaporation failure"
+}
+
+'wait until the head warms up, this means the evaporation is done
+while(tr < #TR_EVAP_LIMIT) {
+    waitforsample
+}
+
+switch.off
+popup "evaporation macro done"

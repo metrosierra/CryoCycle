@@ -50,18 +50,20 @@ class CryoCycler:
     def load_config(self):
         config_path = os.path.join(self.config_dir, 'config.json')
         with open(config_path, 'r') as f:
-            return json.load(f)
+            self.config = json.load(f)
+        return self.config
 
     def handshake(self):
         
         print("Trying to establish driver instantiations...")
-
         try:
             self.liveplotter: LivePlotAgent = LivePlotAgent()
             self.liveplot_refresh_rate = self.config["liveplotter"]["refresh_rate"]
 
-            self.tempcontroller: TempControl_CTC100 = TempControl_CTC100(**self.config["tempcontroller"])
-
+            self.tempcontroller: TempControl_CTC100 = TempControl_CTC100(**self.config["tempcontroller"]["init_args"])
+            self.tempcontroller_macro_dir = os.path.join(self.config_dir, self.config["tempcontroller"]["macro_dir"])
+            print(f"Loading temp controller macros from {self.tempcontroller_macro_dir}")
+            self.load_tempcontroller_macros(self.tempcontroller_macro_dir)
             self.log_dir = self.config["logging"]["relative_dir"]
 
             print("Driver instantiation successful!!!.")
@@ -70,13 +72,21 @@ class CryoCycler:
         except Exception as e:
             print(f"Error during driver instantiation: {e}")
 
+    def load_tempcontroller_macros(self, macro_dir):
+        macro_files = [f for f in os.listdir(macro_dir) if f.endswith('.txt')]
+        self.tempcontroller_macros = {}
+        for file in macro_files:
+            macro_name = os.path.splitext(file)[0]
+            with open(os.path.join(macro_dir, file), 'r') as f:
+                self.tempcontroller_macros[macro_name] = f.read()
+        return self.tempcontroller_macros
+
     def liveplot_tempcontroller(self):
 
         no_plots = 5
         
         def get_data():
             return self.tempcontroller.data[:no_plots]
-
 
         plot_args ={
             'refresh_interval': self.liveplot_refresh_rate,

@@ -85,10 +85,12 @@ class TempControl_CTC100(GenericInstrument):
         return 
     
     def stop_logging(self):
-        self.is_monitoring = False
+        self.is_monitoring = False  
         if self.monitoring_thread:
             self.monitoring_thread.join()
         return
+    
+
 
 if __name__ == '__main__':
     with TempControl_CTC100('ASRL/dev/ttyUSB0::INSTR', 'CTC100') as tc:

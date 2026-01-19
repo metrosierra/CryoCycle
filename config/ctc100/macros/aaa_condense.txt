@@ -1,0 +1,101 @@
+'the PID parameters of hpump must already be set, for exemple with hpump_init
+
+name 'aaa_condense'
+
+'Macro parameters:
+'#HPUMP_ON_K: desried temperature of the pump, in kelvin,
+'#CONDENSATION_WAIT_MIN: time to wait between the moment when the pump is turned on and when we start to check Tr, in minutes.
+'#TR_FALLING_THRESH: the condensation is considering done when Tr reaches this temperature.
+'#SWITCH_ON_T: desired temperature of the switch, in kelvin.
+'#TR_EVAP_LIMIT: limit of Tr to decide when the evaporation is done.
+'#INITIAL_PAUSE: time before the switch is turned on, in munutes.
+'#SECOND_PAUSE: time to wait between the moment when the switch is turned on and when we start to check Tr, in munutes.
+'#TP_START_THRESH: the condensation starts when Tp is below this temperature.
+'#HPUMP_INITIAL_K: hpump PID is set to this temperature until Tr is low enough
+'#HPUMP_ON_TR_THRES: Set hpump PID setpoint to #HPUMP_ON_K only when Tr is below this temperature
+
+' HARD-CODED PARAMETERS FOR MACROING WITHOUT TCC SOFTWARE
+' -- Condensation --
+'Pre-condensation starts when Tp <
+#TP_START_THRESH 30
+
+'Set pump pre-condensation temperature (Tp) to
+#HPUMP_INITIAL_K 25
+
+'Condensation starts when Tr <
+'#HPUMP_ON_TR_THRES 5
+
+'Set pump condensation temperature (Tp) to
+#HPUMP_ON_K 40
+
+'Minimal condensation duration
+#CONDENSATION_WAIT_MIN 30
+
+'Evaporation starts when Tr <
+#TR_FALLING_THRESH 3.8
+		
+
+' -- Evaporation --
+'Initial Pause
+#INITIAL_PAUSE 5
+
+'Set switch temperature (Tsw) to
+#SWITCH_ON_T 20
+
+'Second Pause
+#SECOND_PAUSE 120
+
+'Evaporation is done when Tr >
+#TR_EVAP_LIMIT 2.5
+'End of hard-coded parameters
+
+'abort evaporation if Tr is above this temperature
+#TR_ABORT_LIMIT 5
+
+
+
+'Turn off the pump and the switch if the macro is killed
+abortMacro (hpump.off switch.off)
+
+switch.off
+hpump.off
+
+OutputEnable on
+
+while (tp > #TP_START_THRESH && tr > #HPUMP_ON_TR_THRES) {
+  waitforsample
+}
+
+hpump.pid.setpoint #HPUMP_INITIAL_K
+hpump.pid.mode on
+
+' If Tsw is not cold enough before we start heating Tp to HPUMP_ON_K, Tr warms up and never reach its target temperature 
+while (tsw > #SWITCH_ON_T) {
+  waitforsample
+}
+
+' If tr was already cold but tp is too high we need to wait for Tp too be cold enough too avoid integral windup in the PID controller.
+' Because wa waited for Tsw to be cold enough before, we don't need to check that here
+while (tr > #HPUMP_ON_TR_THRES || tp > #HPUMP_ON_K) {
+  waitforsample
+  ' If tr < #HPUMP_ON_TR_THRES this means that Tp is too hot. Sometime Tp take too long to cool down. To avoid that we 
+  ' turn the heat switch on. But we need to make sure that Tr doesn't warmup too much when we dot that. 
+  if(tr < #HPUMP_ON_TR_THRES) {
+       switch.pid.setpoint #SWITCH_ON_T
+       switch.pid.mode on
+  } else {
+    switch.off
+  }
+}
+
+switch.off
+hpump.pid.mode off
+hpump.pid.setpoint #HPUMP_ON_K
+hpump.pid.mode on
+
+'wait some time for the pump to heat and then for the helium to condensate
+pause #CONDENSATION_WAIT_MIN min
+
+
+
+'End of condensation here

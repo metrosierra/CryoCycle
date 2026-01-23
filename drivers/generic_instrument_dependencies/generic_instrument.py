@@ -6,8 +6,9 @@ import numpy as np
 import threading
 import time
 from queue import Queue
-from datetime import datetime
-
+from datetime import datetime, timezone
+import json
+import ntplib 
 
 class GenericInstrument:
 
@@ -157,9 +158,21 @@ class GenericInstrument:
         dt = datetime.now()
         return dt.hour * 60 + dt.minute
     
-    def get_local_online_time(self):
-        """this gets the online time via the internet"""
-        return
+    def get_local_online_time(self, server="pool.ntp.org"):
+        c = ntplib.NTPClient()
+        r = c.request(server, version=3, timeout=2)
+        dt_utc = datetime.fromtimestamp(r.tx_time, tz=timezone.utc)
+        dt_local = dt_utc.astimezone()
+
+        return dt_local.hour * 60 + dt_local.minute
+    
+    
+    
+    def load_json_config_file(self, json_path: str = None) -> dict:
+        if json_path is None:
+            json_path = self._default_initial_config_path()
+        with open(json_path, "r") as f:
+            return json.load(f)
 
 
 

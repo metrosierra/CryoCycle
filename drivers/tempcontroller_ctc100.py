@@ -123,8 +123,8 @@ class TempControl_CTC100(GenericInstrument):
         self.write(f"{channel}.Alarm.Max {max_val}")
         return
     
-    def set_alarm_relay(self, relay_satus = "None", channel = "Tr"):
-        return self.write(f"{channel}.Alarm.Relay {relay_satus}")
+    def set_alarm_relay(self, relay_status = "None", channel = "Tr"):
+        return self.write(f"{channel}.Alarm.Relay {relay_status}")
     
     def set_alarm_lag(self, lag_time_s = "0.0", channel = "Tr"): # Time for the alarm to trigger after threshold is crossed
         return self.write(f"{channel}.Alarm.Lag {lag_time_s}")
@@ -215,18 +215,82 @@ class TempControl_CTC100(GenericInstrument):
         self.set_pid_status(status = "Off", channel = "switch")
     
         return
+
+
+    def set_initial_input_config(self, json_path_name=json_path):
+        cfg = self.load_json_config_file(json_path_name)
+        inputs = cfg.get("inputs", {})
+
+        for ch, s in inputs.items():
+            if "Sensor" in s:
+                self.set_input_sensor(sensor=str(s["Sensor"]), channel=ch)
+            if "Range" in s:
+                self.set_input_range(range=str(s["Range"]), channel=ch)
+            if "Current" in s:
+                self.set_input_current(current=str(s["Current"]), channel=ch)
+            if "Power" in s:
+                self.set_input_power(power=str(s["Power"]), channel=ch)
+
+            alarm = s.get("Alarm", None)
+            if isinstance(alarm, dict):
+                if ("Min" in alarm) or ("Max" in alarm):
+                    self.set_alarm_min_max(
+                        min_val=str(alarm.get("Min", 0)),
+                        max_val=str(alarm.get("Max", 0)),
+                        channel=ch,
+                    )
+                if "Relay" in alarm:
+                    self.set_alarm_relay(relay_status=str(alarm["Relay"]), channel=ch)
+                if "Lag" in alarm:
+                    self.set_alarm_lag(lag_time_s=str(alarm["Lag"]), channel=ch)
+                if "Sound" in alarm:
+                    self.set_alarm_sound(sound_status=str(alarm["Sound"]), channel=ch)
+                if "Latch" in alarm:
+                    self.set_alarm_latch(latch_status=str(alarm["Latch"]), channel=ch)
+                if "Mode" in alarm:
+                    self.set_alarm_mode(mode=str(alarm["Mode"]), channel=ch)
+                if "Output" in alarm:
+                    self.set_alarm_output(output_channel=str(alarm["Output"]), channel=ch)
+
+        return     
+        
     
-    
-    def set_initial_input_config(self):
-        """Do I hardcode initial config ? or let the user set them ? The inputs are Tp, Tr, T1s, Tsw"""
-        input_channels = ["Tp", "Tr", "T1s", "Tsw"]        
+    def set_initial_output_config(self, json_path_name=json_path):
+        
+        cfg = self.load_json_config_file(json_path_name)
+        outputs = cfg.get("outputs", {})
+
+        for ch, s in outputs.items():
+            if "Units" in s:
+                self.set_output_unit(units=str(s["Units"]), channel=ch)
+            if "Range" in s:
+                self.set_output_range(range=str(s["Range"]), channel=ch)
+
+            if ("LowLmt" in s) or ("HiLmt" in s):
+                low = str(s.get("LowLmt", 0.0))
+                high = str(s.get("HiLmt", 0.0))
+                self.set_output_limits(low_limit=low, high_limit=high, channel=ch)
+
+            if "IOType" in s:
+                self.set_output_io_type(io_type=str(s["IOType"]), channel=ch)
+
+            pid = s.get("PID", None)
+            if isinstance(pid, dict):
+                if "Input" in pid:
+                    self.set_pid_input(input=str(pid["Input"]), channel=ch)
+                if "Setpoint" in pid:
+                    self.set_pid_setpoint(setpoint=str(pid["Setpoint"]), channel=ch)
+                if "Ramp" in pid:
+                    self.set_pid_ramp_rate(rate=str(pid["Ramp"]), channel=ch)  # verify on your CTC
+                self.set_pid_PID(
+                    P=str(pid.get("P", 1.0)),
+                    I=str(pid.get("I", 0.0)),
+                    D=str(pid.get("D", 0.0)),
+                    channel=ch,
+                )
+
         return
-    
-    
-    
-    def set_initial_output_config(self):
-        """Do I hardcode initial config ? or let the user set them ? The outputs are hpump and switch"""
-        return
+        
     
     
     

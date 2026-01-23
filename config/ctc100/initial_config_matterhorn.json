@@ -1,0 +1,51 @@
+{
+  "inputs": {
+    "Tp":  { 
+        "Sensor": "Diode", "Range": "2.5V", "Current": "Forward", "Power": "Auto",
+        "Alarm": { "Min": "0", "Max": "100", "Relay": "None", "Lag": "0", "Sound": "None", "Latch": "Off", "Mode": "Level", "Output": "hpump" }
+    },
+
+    "Tr":  { "Sensor": "ROX",   "Range": "Auto", "Current": "AC", "Power": "Auto",
+        "Alarm": { "Min": "0", "Max": "5", "Relay": "None", "Lag": "0", "Sound": "None", "Latch": "Off", "Mode": "Level", "Output": "switch" }
+    },
+
+    "Tsw": { "Sensor": "Diode", "Range": "2.5V", "Current": "Forward", "Power": "Auto",
+        "Alarm": { "Min": "0", 	"Max": "100", "Relay": "None", "Lag": "0", "Sound": "None", "Latch": "Off", "Mode": "Level", "Output": "switch"}
+    }
+  },
+
+
+
+
+  "outputs": {
+
+    "hpump": {
+      "Units": "V",
+      "Range": "50V .2A",
+      "LowLmt": "0",
+      "HiLmt": "30.0",
+      "IOType": "Meas out",
+      "PID": {
+        "Input": "Tp",
+        "Setpoint": "40.0",
+        "Ramp": "0.0",
+        "P": "2.0", "I": "1.000e-4", "D": "0.001000"
+      }
+    },
+
+
+
+    "switch": {
+      "Units": "V",
+      "LowLmt": "0.0",
+      "HiLmt": "5.0",
+      "IOType": "Meas out", 
+      "PID": {
+        "Input": "Tsw",
+        "Setpoint": "20.0",
+        "Ramp": "0.0",
+        "P": "4.0", "I": "0.1", "D": "0.01000"
+      }
+    }
+  }
+}

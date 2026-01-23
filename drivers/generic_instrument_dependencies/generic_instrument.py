@@ -6,7 +6,7 @@ import numpy as np
 import threading
 import time
 from queue import Queue
-
+from datetime import datetime
 
 
 class GenericInstrument:
@@ -152,6 +152,14 @@ class GenericInstrument:
             t = threading.Thread(target=data_thread)
             t.start()
         return 1 ### number of channels by default
+    
+    def get_local_system_time(self):
+        dt = datetime.now()
+        return dt.hour * 60 + dt.minute
+    
+    def get_local_online_time(self):
+        """this gets the online time via the internet"""
+        return
 
 
 

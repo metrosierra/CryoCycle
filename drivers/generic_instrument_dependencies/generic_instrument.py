@@ -8,7 +8,7 @@ import time
 from queue import Queue
 from datetime import datetime, timezone
 import json
-import ntplib 
+import matplotlib.pyplot as plt 
 
 class GenericInstrument:
 

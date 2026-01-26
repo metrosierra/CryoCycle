@@ -57,103 +57,707 @@ class TempControl_CTC100(GenericInstrument):
     
     """ PID/Output related functions"""
     
-    def get_pid_status(self, channel = "hpump"):
+    def get_pid_status(self, channel = False):
         # Get PID status for a given channel, e.g., "hpump" or "switch"
-        command = self.query(channel + ".PID.Mode?")
-        print(f"PID status for {channel}: {command}")
-        return command
+        
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        return self.query(channel + ".PID.Mode?")
     
-    def set_pid_status(self, status = "Off", channel = "hpump"):
+    
+    def set_pid_status(self, status = False, channel = False):
         # Set PID status for a given channel, e.g., "hpump" or "switch"
-        command = f"{channel}.PID.Mode {status}"
-        self.write(command)
-        print(f"Set PID status for {channel} to {status}")
+        
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        if status:
+            if status in ["On", "ON", "on"]:
+                status = "On"
+            elif status in ["Off", "OFF", "off"]:
+                status = "Off"
+            else:
+                print(f"Invalid status: {status}. Must be 'On' or 'Off'.")
+                return None
+
+        return f"{channel}.PID.Mode {status}"
+    
+    
+    def set_output_unit(self, units = False, channel = False): # Unit can be "V", "W", "A"
+        
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+            
+        if units:
+            if units in ["V", "v", "Volts", "volts"]:
+                units = "V"
+            elif units in ["A", "a", "Amps", "amps"]:
+                units = "A"
+            elif units in ["W", "w", "Watts", "watts"]:
+                units = "W"
+            else:
+                print(f"Invalid units: {units}. Must be 'V', 'A', or 'W'.")
+                return None
+        
+        return self.query(f"{channel}.Units {units}")
+    
+    
+    
+    
+    def set_output_range(self, range = False, channel = False): # Range, Auto, "xV xA"
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+            
+        if range:
+            valid_ranges = ["50V 2A", "50V .6A", "50V .2A", "20V 2A", "20V .6A", "20V .2A", "Auto"]
+            if str(range)not in valid_ranges:
+                print(f"Invalid range: {range}. Must be one of {valid_ranges}.")
+                return None
+        else:
+            print("Range not specified. Please provide a valid range.")
+            return None
+        
+        return self.query(f"{channel}.Range {range}")
+    
+    
+    
+    def set_output_limits(self, low_limit = False, high_limit = False, channel = False):
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        
+        if low_limit is False or high_limit is False:
+            print("Both low_limit and high_limit must be specified.")
+            return None
+        else:
+            low_limit = str(low_limit)
+            high_limit = str(high_limit)
+        
+        self.query(f"{channel}.LowLmt {low_limit}")
+        self.query(f"{channel}.HiLmt {high_limit}")
         return
     
-    def set_output_unit(self, units = "V", channel = "hpump"): # Unit can be "V", "W", "A"
-        return self.write(f"{channel}.Units {units}")
+
+
+    def set_output_io_type(self, io_type = False, channel = False): # "Meas out", "Set out"
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+
+        if io_type:
+            if io_type in ["Meas out", "meas out", "MEAS OUT", "Measured out", "measure out"]:
+                io_type = "Meas out"
+            elif io_type in ["Set out", "set out", "SET OUT"]:
+                io_type = "Set out"
+            else:
+                print(f"Invalid io_type: {io_type}. Must be 'Meas out' or 'Set out'.")
+                return None
+        else:
+            print("io_type not specified. Please provide 'Meas out' or 'Set out'.")
+            return None
+        
+        return self.query(f"{channel}.IOType {io_type}")
     
-    def set_output_range(self, range = "50V .2A", channel = "hpump"): # Range, Auto, "xV xA"
-        return self.write(f"{channel}.Range {range}")
     
-    def set_output_limits(self, low_limit = "0.0", high_limit = "30.0", channel = "hpump"):
-        self.write(f"{channel}.LowLmt {low_limit}")
-        self.write(f"{channel}.HiLmt {high_limit}")
+    
+    def set_pid_input(self, input = False, channel = False): 
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        
+        if input:
+            if input in ["Tp", "tp", "TP"]:
+                input = "Tp"
+            elif input in ["Tr", "tr", "TR"]:
+                input = "Tr"
+            elif input in ["T1s", "t1s", "T1S"]:
+                input = "T1s"
+            elif input in ["Tsw", "tsw", "TSW"]:
+                input = "Tsw"
+            else:
+                print(f"Invalid input: {input}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Input not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        return self.query(f"{channel}.PID.Input {input}")
+    
+    
+    
+    
+    
+    
+    
+    def set_pid_setpoint(self, setpoint = False, channel = False): # temperature trying to keep the input channel at
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        
+        if setpoint is False:
+            print("Setpoint not specified. Please provide a valid setpoint.")
+            return None
+        else:
+            setpoint = str(setpoint)
+        
+        return self.query(f"{channel}.PID.Setpoint {setpoint}")
+    
+    
+    
+
+
+    def set_pid_ramp_rate(self, rate = False, channel = False): # rate of ramp, 0 means max rate availble
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+
+        if rate is False:
+            print("Rate not specified. Please provide a valid rate.")
+            return None
+        else:
+            rate = str(rate)
+
+        return self.query(f"{channel}.PID.Ramp {rate}")
+    
+    
+    
+    
+    def set_pid_ramp_t(self, ramp_t = False, channel = False): # target temperature to ramp to
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        if ramp_t is False:
+            print("Ramp target temperature not specified. Please provide a valid temperature.")
+            return None
+        else:
+            ramp_t = str(ramp_t)
+            
+        return self.query(f"{channel}.PID.RampT {ramp_t}")
+    
+    
+    
+    
+    
+    
+    def set_pid_PID(self, P = False, I = False, D = False, channel = False): # proportional, integral, and derivative gain factors for PID feedback
+        
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+
+        if P is False:
+            print("P not specified. Please provide a valid P.")
+            return None
+        else:
+            P = str(P)
+
+        if I is False:
+            print("I not specified. Please provide a valid I.")
+            return None
+        else:
+            I = str(I)
+
+        if D is False:
+            print("D not specified. Please provide a valid D.")
+            return None
+        else:
+            D = str(D)
+
+        self.query(f"{channel}.PID.P {P}")
+        self.query(f"{channel}.PID.I {I}")
+        self.query(f"{channel}.PID.D {D}")
         return
     
-    def set_output_io_type(self, io_type = "Meas out", channel = "hpump"): # "Meas out", "Set out"
-        return self.write(f"{channel}.IOType {io_type}")
     
-    def set_pid_input(self, input = "Tp", channel = "hpump"): 
-        return self.write(f"{channel}.PID.Input {input}")
     
-    def set_pid_setpoint(self, setpoint = "40.000", channel = "hpump"): # temperature trying to keep the input channel at
-        return self.write(f"{channel}.PID.Setpoint {setpoint}")
+    def set_output_stepy(self, step_y = False, channel = False):
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        
+        if step_y is False:
+            print("StepY not specified. Please provide a valid StepY.")
+            return None
+        else:
+            step_y = str(step_y)
+        
+        return self.query(f"{channel}.Tune.StepY {step_y}")
     
-    def set_pid_ramp_rate(self, rate = "0.0", channel = "hpump"): # rate of ramp, 0 means max rate availble
-        return self.write(f"{channel}.PID.Ramp {rate}")
-    
-    def set_pid_ramp_t(self, ramp_t = "40.000", channel = "hpump"): # target temperature to ramp to
-        return self.write(f"{channel}.PID.RampT {ramp_t}")
-    
-    def set_pid_PID(self, P = "1.0", I = "0.0", D = "0.0", channel = "hpump"): # proportional, integral, and derivative gain factors for PID feedback
-        self.write(f"{channel}.PID.P {P}")
-        self.write(f"{channel}.PID.I {I}")
-        self.write(f"{channel}.PID.D {D}")
-        return
-    
-    def set_output_stepy(self, step_y = 1.5, channel = "hpump"):
-        return self.write(f"{channel}.Tune.StepY {step_y}")
-    
-    def set_output_lag(self, lag_time_s = 30.0, channel = "hpump"):
-        return self.write(f"{channel}.Tune.Lag {lag_time_s}")
+    def set_output_lag(self, lag_time_s = False, channel = False):
+        if channel:
+            if channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+
+        if lag_time_s is False:
+            print("Lag time not specified. Please provide a valid lag time.")
+            return None
+        else:
+            lag_time_s = str(lag_time_s)
+        
+        return self.query(f"{channel}.Tune.Lag {lag_time_s}")
     
     
     
     """ Alarm related functions"""
     
-    def get_alarm_status(self, channel = "Tr"): # Alarm for input channels, e.g. the temperature channels Tp, Tr, T1s and Tsw
+    def get_alarm_status(self, channel = False): # Alarm for input channels, e.g. the temperature channels Tp, Tr, T1s and Tsw
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
         command = self.query(channel + ".Alarm.Mode?")
         command_output = self.query(channel + ".Alarm.Output?")
-        print(f"Alarm status for {channel}: {command}, Output: {command_output}")
+
         return command, command_output
     
-    def set_alarm_min_max(self, min_val = "0", max_val = "5", channel = "Tr"):
-        self.write(f"{channel}.Alarm.Min {min_val}")
-        self.write(f"{channel}.Alarm.Max {max_val}")
+    
+    
+    def set_alarm_min_max(self, min_val = False, max_val = False, channel = False):
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if min_val is False or max_val is False:
+            print("Both min_val and max_val must be specified.")
+            return None
+        else:
+            min_val = str(min_val)
+            max_val = str(max_val)
+        
+        self.query(f"{channel}.Alarm.Min {min_val}")
+        self.query(f"{channel}.Alarm.Max {max_val}")
         return
     
-    def set_alarm_relay(self, relay_status = "None", channel = "Tr"):
-        return self.write(f"{channel}.Alarm.Relay {relay_status}")
     
-    def set_alarm_lag(self, lag_time_s = "0.0", channel = "Tr"): # Time for the alarm to trigger after threshold is crossed
-        return self.write(f"{channel}.Alarm.Lag {lag_time_s}")
     
-    def set_alarm_sound(self, sound_status = "None", channel = "Tr"): # "1 beep", "2 beeps"...
-        return self.write(f"{channel}.Alarm.Sound {sound_status}")
     
-    def set_alarm_latch(self, latch_status = "Off", channel = "Tr"):
-        return self.write(f"{channel}.Alarm.Latch {latch_status}")
+    def set_alarm_lag(self, lag_time_s = False, channel = False): # Time for the alarm to trigger after threshold is crossed
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if lag_time_s is False:
+            print("Lag time not specified. Please provide a valid lag time.")
+            return None
+        else:
+            lag_time_s = str(lag_time_s)
+            
+        return self.query(f"{channel}.Alarm.Lag {lag_time_s}")
     
-    def set_alarm_mode(self, mode = "Level", channel = "Tr"): # "Off", "Level", "Rate /s"
-        return self.write(f"{channel}.Alarm.Mode {mode}")
     
-    def set_alarm_output(self, output_channel = "switch", channel = "Tr"): # Output channel is the channel that will be turned off once alarm triggers
-        return self.write(f"{channel}.Alarm.Output {output_channel}")
+    
+    
+    def set_alarm_sound(self, sound_status = False, channel = False): # "1 beep", "2 beeps"...
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if sound_status:
+            valid_sounds = ["None", "1 beep", "2 beeps", "3 beeps", "4. beeps"]
+            if sound_status not in valid_sounds:
+                print(f"Invalid sound status: {sound_status}. Must be one of {valid_sounds}.")
+                return None
+        else:
+            print("Sound status not specified. Please provide a valid sound status.")
+            return None
+        
+        
+        return self.query(f"{channel}.Alarm.Sound {sound_status}")
+    
+    
+    
+    def set_alarm_latch(self, latch_status = False, channel = False):
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if latch_status:
+            if latch_status in ["Yes", "YES", "yes", "On", "ON", "on"]:
+                latch_status = "Yes"
+            elif latch_status in ["Off", "OFF", "off", "No", "NO", "no"]:
+                latch_status = "No"
+            else:
+                print(f"Invalid latch status: {latch_status}. Must be 'On' or 'Off'.")
+                return None
+        else:
+            print("Latch status not specified. Please provide 'On' or 'Off'.")
+            return None
+        
+        return self.query(f"{channel}.Alarm.Latch {latch_status}")
+    
+    
+    
+    def set_alarm_mode(self, mode = False, channel = False): # "Off", "Level", "Rate /s"
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if mode:
+            if mode in ["Off", "OFF", "off"]:
+                mode = "Off"
+            elif mode in ["Level", "level", "LEVEL"]:
+                mode = "Level"
+            elif mode in ["Rate /s", "rate /s", "RATE /S", "Rate", "rate", "RATE"]:
+                mode = "Rate /s"
+            else:
+                print(f"Invalid mode: {mode}. Must be 'Off', 'Level', or 'Rate /s'.")
+                return None
+        else:
+            print("Mode not specified. Please provide 'Off', 'Level', or 'Rate /s'.")
+            return None
+        
+        return self.query(f"{channel}.Alarm.Mode {mode}")
+    
+    
+    
+    
+    
+    def set_alarm_output(self, output_channel = False, channel = False): # Output channel is the channel that will be turned off once alarm triggers
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        if output_channel:
+            if output_channel in ["hpump", "Hpump", "HPUMP"]:
+                output_channel = "hpump"
+            elif output_channel in ["switch", "Switch", "SWITCH"]:
+                output_channel = "switch"
+            else:
+                print(f"Invalid output channel name: {output_channel}. Must be 'hpump' or 'switch'.")
+                return None
+        else:
+            print("Output channel not specified. Please provide 'hpump' or 'switch'.")
+            return None
+        
+        return self.query(f"{channel}.Alarm.Output {output_channel}")
+    
+    
+    
+    
     
     """ Input related functions"""
     
-    def set_input_sensor(self, sensor = "ROX", channel = "Tr"): # Sensor types, Diode, ROX, RTD, Therm
-        return self.write(f"{channel}.Sensor {sensor}")
+    def set_input_sensor(self, sensor = False, channel = False): # Sensor types, Diode, ROX, RTD, Therm
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if sensor:
+            if sensor in ["Diode", "diode", "DIODE"]:
+                sensor = "Diode"
+            elif sensor in ["ROX", "rox", "Rox"]:
+                sensor = "ROX"
+            elif sensor in ["RTD", "rtd", "Rtd"]:
+                sensor = "RTD"
+            elif sensor in ["Therm", "therm", "THERM"]:
+                sensor = "Therm"
+            else:
+                print(f"Invalid sensor type: {sensor}. Must be 'Diode', 'ROX', 'RTD', or 'Therm'.")
+                return None
+        else:
+            print("Sensor type not specified. Please provide 'Diode', 'ROX', 'RTD', or 'Therm'.")
+            return None
+        
+        return self.query(f"{channel}.Sensor {sensor}")
     
-    def set_input_range(self, range = "Auto", channel = "Tr"): # Range, Auto, 10e, 30e, 100e, 30e, ..., 2.5V
-        return self.write(f"{channel}.Range {range}")
     
-    def set_input_current(self, current = "AC", channel = "Tr"): # current type, Forward, Reverse, AC, Off
-        return self.write(f"{channel}.Current {current}")
     
-    def set_input_power(self, power = "Auto", channel = "Tr"): # power, Auto, Low, High
-        return self.write(f"{channel}.Power {power}")
+    
+    def set_input_range(self, range = False, channel = False): # Range, Auto, 10e, 30e, 100e, 30e, ..., 2.5V
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if range is False:
+            print("Range not specified. Please provide a valid range.")
+            return None
+        else:
+            range = str(range) 
+        
+        return self.query(f"{channel}.Range {range}")
+    
+    
+    
+    def set_input_current(self, current = False, channel = False): # current type, Forward, Reverse, AC, Off
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        
+        if current:
+            if current in ["Forward", "forward", "FORWARD"]:
+                current = "Forward"
+            elif current in ["Reverse", "reverse", "REVERSE"]:
+                current = "Reverse"
+            elif current in ["AC", "ac", "Ac"]:
+                current = "AC"
+            elif current in ["Off", "off", "OFF"]:
+                current = "Off"
+            else:
+                print(f"Invalid current type: {current}. Must be 'Forward', 'Reverse', 'AC', or 'Off'.")
+                return None
+        else:
+            print("Current type not specified. Please provide 'Forward', 'Reverse', 'AC', or 'Off'.")
+            return None
+        
+        return self.query(f"{channel}.Current {current}")
+    
+    def set_input_power(self, power = False, channel = False): # power, Auto, Low, High
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', or 'Tsw'.")
+            return None
+        if power:
+            if power in ["Auto", "auto", "AUTO"]:
+                power = "Auto"
+            elif power in ["Low", "low", "LOW"]:
+                power = "Low"
+            elif power in ["High", "high", "HIGH"]:
+                power = "High"
+            else:
+                print(f"Invalid power setting: {power}. Must be 'Auto', 'Low', or 'High'.")
+                return None
+        else:
+            print("Power setting not specified. Please provide 'Auto', 'Low', or 'High'.")
+            return None
+        
+        return self.query(f"{channel}.Power {power}")
     
 
     
@@ -200,12 +804,24 @@ class TempControl_CTC100(GenericInstrument):
             self.monitoring_thread.join()
         return
     
-    def set_output(self, status = "on"):
-        return self.write(f"outputEnable {status}")
+    def set_output(self, status = False):
+        if status:
+            if status in ["On", "ON", "on"]:
+                status = "on"
+            elif status in ["Off", "OFF", "off"]:
+                status = "off"
+            else:
+                print(f"Invalid status: {status}. Must be 'On' or 'Off'.")
+                return None
+        else:
+            print("Status not specified. Please provide 'On' or 'Off'.")
+            return None
+        
+        return self.query(f"outputEnable {status}")
     
     
     def wait_for_sample(self):
-        return self.write("waitForSample")
+        return self.query("waitForSample")
     
     
     

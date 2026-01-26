@@ -158,13 +158,7 @@ class GenericInstrument:
         dt = datetime.now()
         return dt.hour * 60 + dt.minute
     
-    def get_local_online_time(self, server="pool.ntp.org"):
-        c = ntplib.NTPClient()
-        r = c.request(server, version=3, timeout=2)
-        dt_utc = datetime.fromtimestamp(r.tx_time, tz=timezone.utc)
-        dt_local = dt_utc.astimezone()
 
-        return dt_local.hour * 60 + dt_local.minute
     
     
     

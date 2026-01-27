@@ -100,7 +100,9 @@ class CryoCycler:
         self.liveplotter.new_liveplot(data_func = get_data, kill_func = None, **plot_args)
 
         return 
-
+    
+    
+    
 
 
 

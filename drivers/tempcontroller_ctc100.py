@@ -627,6 +627,30 @@ class TempControl_CTC100(GenericInstrument):
     
     """ Input related functions"""
     
+    
+    def get_channel_value(self, channel = False):
+        if channel:
+            if channel in ["Tp", "tp", "TP"]:
+                channel = "Tp"
+            elif channel in ["Tr", "tr", "TR"]:
+                channel = "Tr"
+            elif channel in ["T1s", "t1s", "T1S"]:
+                channel = "T1s"
+            elif channel in ["Tsw", "tsw", "TSW"]:
+                channel = "Tsw"
+            elif channel in ["hpump", "Hpump", "HPUMP"]:
+                channel = "hpump"
+            elif channel in ["switch", "Switch", "SWITCH"]:
+                channel = "switch"
+            else:
+                print(f"Invalid channel name: {channel}. Must be 'Tp', 'Tr', 'T1s', 'Tsw', 'hpump', or 'switch'.")
+                return None
+        else:
+            print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', 'Tsw', 'hpump', or 'switch'.")
+            return None
+        
+        return self.query(f"{channel}.Value?")
+    
     def set_input_sensor(self, sensor = False, channel = False): # Sensor types, Diode, ROX, RTD, Therm
         if channel:
             if channel in ["Tp", "tp", "TP"]:
@@ -914,18 +938,49 @@ class TempControl_CTC100(GenericInstrument):
         """Run evaporation"""
         self.set_pid_off()
         self.set_output("on")
+        self.set_pid_setpoint(setpoint = "20.000", channel = "switch")
+
         
         while True:
-            tp = self.check_temperature_condition(channel = "Tp")
-            tr = self.check_temperature_condition(channel = "Tr")
-            
-            if tp < 30 and tr < 3.0:
-                break
-            time.sleep(2)
-            
-        self.set_pid_setpoint(setpoint = "20.000", channel = "switch")
-        self.set_pid_status(status = "On", channel = "switch")
         
+            if float(self.get_channel_value(channel = "Tp")) > 39.000:
+                self.set_pid_status(status = "On", channel = "switch")
+                break
+            else:
+                self.set_pid_off()
+                self.set_pid_setpoint(setpoint = "40.000", channel = "hpump")
+                self.set_pid_status(status = "On", channel = "hpump")
+                time.sleep(60*10)
+                self.set_pid_off()
+        print("Starting Evaporation process")
+        time.sleep(60*60)
+        t0 = time.time() 
+        while True:
+            
+            if float(self.get_channel_value(channel = "Tr")) < 1:  
+                print("Evaporation complete. Cryo is cold. Happy Experimenting!")
+                break
+            else:
+                time.sleep(60*5)
+                if time.time() - t0 > 60*60: # 60 minutes extra
+                    print("Evaporation taking too long. Aborting process.")
+                    self.set_pid_off()
+                    self.set_pid_status(status = "On", channel = "hpump")
+                    time.sleep(60*60)
+                    
+                    while True:
+                        if float(self.get_channel_value(channel = "Tp")) > 38.000:
+                            self.set_pid_off()
+                            return
+                        else:
+                            time.sleep(60*30)
+                            if time.time() - t0 > 60*60*4: 
+                                print("resetting temp controller to safe state. Failed")
+                                self.set_pid_off()
+                                return
+                    
+                else:
+                    continue    
         return
     
     
@@ -934,19 +989,80 @@ class TempControl_CTC100(GenericInstrument):
         self.set_output("on")
         self.set_pid_off()
         self.set_pid_setpoint(setpoint = "40.000", channel = "hpump")  
+     
+
         self.set_pid_status(status = "On", channel = "hpump")
+        print("Starting Condensation process")
+           
+        time.sleep(60*60*1.5)
+        t0 = time.time()
+        while True:
+            if float(self.get_channel_value(channel = "Tp")) > 38.000 and float(self.get_channel_value(channel = "Tr")) > 3.000:
+                print("Condensation complete. Cryo is ready. Happy Experimenting!")
+                break
+            else:
+                time.sleep(60*5)
+                if time.time() - t0 > 60*90: # 90 minutes extra
+                    print("Condensation taking too long. Aborting process.")
+                    self.set_pid_off()
+                    return
+                else:
+                    continue
+                    
         
         return
     
     
-    def check_temperature_condition(self, channel = "Tr"):
-        output_values = self.get_data("values")
-        output_names = self.get_data("names")
-        channel_index = output_names.index(channel)
-        channel_temp = output_values[channel_index]
-   
-        return channel_temp
+    def force_abort(self):
+        
+        self.set_pid_off()
+        self.set_output("off")
+        self.query("abort")
+        print("Aborted any running process and set to safe state.")
+        return
     
+    
+    def kill_all(self):
+        return self.query("kill.all")
+    
+    def run_ctc100_automatic_cycle(self, start_evaporation_time = False, start_condensation_time = False):
+        
+        
+        if start_evaporation_time is False or start_condensation_time is False:
+            print("Both start_evaporation_time and start_condensation_time must be specified (in hours).")
+            return None
+        
+        start_evap = start_evaporation_time * 60 # time in minutes
+        start_cond = start_condensation_time * 60 # time in minutes
+        evap_ran_today = False
+        cond_ran_today = False
+      
+        
+        while True:
+            now = self.get_local_system_time()
+            
+            
+            if now < 240: # reset at new day
+                evap_ran_today = False
+                cond_ran_today = False
+            
+            
+            if abs(now - start_evap) <= 15 and not evap_ran_today:
+                print("Starting scheduled evaporation process")
+                self.run_evaporation()
+                evap_ran_today = True
+            
+            if abs(now - start_cond) <= 15 and not cond_ran_today:
+                print("Starting scheduled condensation process")
+                self.run_condensation()
+                cond_ran_today = True
+            
+            time.sleep(60*10)
+                
+        
+        return
+        
+
     
 
 

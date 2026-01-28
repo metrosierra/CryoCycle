@@ -1025,43 +1025,50 @@ class TempControl_CTC100(GenericInstrument):
     def kill_all(self):
         return self.query("kill.all")
     
+    
     def run_ctc100_automatic_cycle(self, start_evaporation_time = False, start_condensation_time = False):
+    
+        def run_ctc100_automatic_cycle_thread(evap_time = False, cond_time = False):
+            
+            
+            if evap_time is False or cond_time is False:
+                print("Both start_evaporation_time and start_condensation_time must be specified (in hours).")
+                return None
+            
+            start_evap = evap_time * 60 # time in minutes
+            start_cond = cond_time * 60 # time in minutes
+            evap_ran_today = False
+            cond_ran_today = False
         
-        
-        if start_evaporation_time is False or start_condensation_time is False:
-            print("Both start_evaporation_time and start_condensation_time must be specified (in hours).")
-            return None
-        
-        start_evap = start_evaporation_time * 60 # time in minutes
-        start_cond = start_condensation_time * 60 # time in minutes
-        evap_ran_today = False
-        cond_ran_today = False
-      
-        
-        while True:
-            now = self.get_local_system_time()
             
-            
-            if now < 240: # reset at new day
-                evap_ran_today = False
-                cond_ran_today = False
-            
-            
-            if abs(now - start_evap) <= 15 and not evap_ran_today:
-                print("Starting scheduled evaporation process")
-                self.run_evaporation()
-                evap_ran_today = True
-            
-            if abs(now - start_cond) <= 15 and not cond_ran_today:
-                print("Starting scheduled condensation process")
-                self.run_condensation()
-                cond_ran_today = True
-            
-            time.sleep(60*10)
+            while True:
+                now = self.get_local_system_time()
                 
+                
+                if now < 240: # reset at new day
+                    evap_ran_today = False
+                    cond_ran_today = False
+                
+                
+                if abs(now - start_evap) <= 15 and not evap_ran_today:
+                    print("Starting scheduled evaporation process")
+                    self.run_evaporation()
+                    evap_ran_today = True
+                
+                if abs(now - start_cond) <= 15 and not cond_ran_today:
+                    print("Starting scheduled condensation process")
+                    self.run_condensation()
+                    cond_ran_today = True
+                
+                time.sleep(60*10)
+                    
+            
+            return
+
+        t = threading.Thread(target=run_ctc100_automatic_cycle_thread, args=(start_evaporation_time, start_condensation_time), daemon=True)
+        t.start()
         
         return
-        
 
     
 

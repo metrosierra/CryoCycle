@@ -177,8 +177,8 @@ class GenericInstrument:
         payload = {
             "text": message
         }
-        r = requests.post(url, json=payload)
-        r.raise_for_status()
+        # r = requests.post(url, json=payload)
+        #r.raise_for_status()
         return
 
 

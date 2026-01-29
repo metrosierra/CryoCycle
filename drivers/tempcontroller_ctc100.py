@@ -97,7 +97,7 @@ class TempControl_CTC100(GenericInstrument):
                 print(f"Invalid status: {status}. Must be 'On' or 'Off'.")
                 return None
 
-        return f"{channel}.PID.Mode {status}"
+        return self.query(f"{channel}.PID.Mode {status}")
     
     
     def set_output_unit(self, units = False, channel = False): # Unit can be "V", "W", "A"
@@ -956,6 +956,7 @@ class TempControl_CTC100(GenericInstrument):
         
             if float(self.get_channel_value(channel = "Tp")) > 39.000: # Check if Tp is high enough to start evaporation, if yes, start evaporation PID Switch On
                 self.set_pid_status(status = "On", channel = "switch") 
+             
                 break
             else:
                 self.set_pid_off()      
@@ -1125,7 +1126,7 @@ class TempControl_CTC100(GenericInstrument):
 
 
 if __name__ == '__main__':
-    with TempControl_CTC100('ASRL/dev/ttyUSB0::INSTR', 'CTC100') as tc:
+    with TempControl_CTC100('ASRL/dev/ttyACM0::INSTR', 'CTC100') as tc: #ASRL/dev/ttyUSB0::INSTR
         print("Connected to CTC100 interactive window session")
         print("\n>>>> USE TEMP CONTROLLER OBJECT AS tc <<<<\n")
         import code; code.interact(local=locals())

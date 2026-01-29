@@ -403,6 +403,15 @@ class TempControl_CTC100(GenericInstrument):
         
         return self.query(f"{channel}.Tune.Lag {lag_time_s}")
     
+    def set_channel_off(self, channel = False):
+        if channel in ["hpump", "Hpump", "HPUMP"]:
+            channel = "hpump"
+        elif channel in ["switch", "Switch", "SWITCH"]:
+            channel = "switch"
+        else:
+            print(f"Invalid channel name: {channel}. Must be 'hpump' or 'switch'.")
+            return None
+        return self.query(f"{channel}.Off")
     
     
     """ Alarm related functions"""
@@ -853,6 +862,8 @@ class TempControl_CTC100(GenericInstrument):
         """Ping someone to check"""
         self.set_pid_status(status = "Off", channel = "hpump")
         self.set_pid_status(status = "Off", channel = "switch")
+        self.set_channel_off(channel = "hpump")
+        self.set_channel_off(channel = "switch")
     
         return
 
@@ -938,79 +949,88 @@ class TempControl_CTC100(GenericInstrument):
         """Run evaporation"""
         self.set_pid_off()
         self.set_output("on")
-        self.set_pid_setpoint(setpoint = "20.000", channel = "switch")
-
+        self.set_pid_setpoint(setpoint = "20.000", channel = "switch") # Setting everything off and preparing to start evaporation
+        t2 = time.time()
         
-        while True:
+        while True: # Loop to check if the initial temperatures are met and safe to evaporate
         
-            if float(self.get_channel_value(channel = "Tp")) > 39.000:
-                self.set_pid_status(status = "On", channel = "switch")
+            if float(self.get_channel_value(channel = "Tp")) > 39.000: # Check if Tp is high enough to start evaporation, if yes, start evaporation PID Switch On
+                self.set_pid_status(status = "On", channel = "switch") 
                 break
             else:
-                self.set_pid_off()
+                self.set_pid_off()      
                 self.set_pid_setpoint(setpoint = "40.000", channel = "hpump")
-                self.set_pid_status(status = "On", channel = "hpump")
-                time.sleep(60*10)
+                self.set_pid_status(status = "On", channel = "hpump") # If Tp is not high enough, condensate for 1.5h and try again 
+                time.sleep(60*90)
                 self.set_pid_off()
+                if abs(time.time() - t2) > 60*60*2: # 2 hours extra
+                    """Slack notificaiton, evap starting conditions never met please check"""
+                    return
+                
         print("Starting Evaporation process")
-        time.sleep(60*60)
-        t0 = time.time() 
+        time.sleep(60*60) # 1h wait to let the cryo evaporate and get down to low temp
+        t0 = time.time()  # Start timer to monitor how long its been since cold -ish
         while True:
             
-            if float(self.get_channel_value(channel = "Tr")) < 1:  
+            if float(self.get_channel_value(channel = "Tr")) < 1:  # Check if Tr is low enough, if cold enough, get out of the loop, evaporation was successful
                 print("Evaporation complete. Cryo is cold. Happy Experimenting!")
+                t_evaporation = time.time()
                 break
             else:
-                time.sleep(60*5)
-                if time.time() - t0 > 60*60: # 60 minutes extra
-                    print("Evaporation taking too long. Aborting process.")
+                time.sleep(60*5) 
+                if abs(time.time() - t0) > 60*60: # 60 minutes extra
+                    print("Evaporation taking too long. Aborting process.") # for the next 1h, check every 5 minutes to see if Tr is low enough, if Tr never gets to < 1K, attempt soft abort
                     self.set_pid_off()
-                    self.set_pid_status(status = "On", channel = "hpump")
-                    time.sleep(60*60)
-                    
+                    self.set_pid_status(status = "On", channel = "hpump") # Soft abort = trying condensation procedure 
+                    time.sleep(60*60*2) # 2 hours condensation to make sure helium is back to normal level
+                    t1 = time.time()
                     while True:
-                        if float(self.get_channel_value(channel = "Tp")) > 38.000:
-                            self.set_pid_off()
+                        if float(self.get_channel_value(channel = "Tp")) > 38.000 and 3.00 < float(self.get_channel_value(channel = "Tr")) < 4.00: # Checking if soft abort was successful by checking if Tp is back to setpoint and that Tr is back to normal range. 
+                            """pring slack channel with alert message that evap aborted softly"""
                             return
                         else:
                             time.sleep(60*30)
-                            if time.time() - t0 > 60*60*4: 
+                            if abs(time.time() - t1) > 60*60: # for the next 1h, check every 30 min to see if soft abort was successful, if not, hard abort
                                 print("resetting temp controller to safe state. Failed")
                                 self.set_pid_off()
+                                """ping slack channel with alert message that evap aborted hard"""
                                 return
                     
                 else:
-                    continue    
-        return
+                    continue 
+            
+        
+               
+        return # Max runtime if aborts = 9h
     
     
     def run_condensation(self):
         """Run condensation"""
         self.set_output("on")
         self.set_pid_off()
-        self.set_pid_setpoint(setpoint = "40.000", channel = "hpump")  
+        self.set_pid_setpoint(setpoint = "40.000", channel = "hpump")   # Setting up initial conditions for condensation
      
 
         self.set_pid_status(status = "On", channel = "hpump")
         print("Starting Condensation process")
            
-        time.sleep(60*60*1.5)
+        time.sleep(60*60*1.5) # turning condensation on and waiting 1.5h to let the cryo condense enough helium
         t0 = time.time()
         while True:
-            if float(self.get_channel_value(channel = "Tp")) > 38.000 and float(self.get_channel_value(channel = "Tr")) > 3.000:
+            if float(self.get_channel_value(channel = "Tp")) > 38.000 and 3.00 < float(self.get_channel_value(channel = "Tr")) < 4.000: # checking if Tp is at the setpoint and that Tr is in the normal range
                 print("Condensation complete. Cryo is ready. Happy Experimenting!")
                 break
             else:
-                time.sleep(60*5)
+                time.sleep(60*5) # for the nect 1h30, check every 5 minutes to see if Tp and Tr are at the right values, if not, abort and send slack message.
                 if time.time() - t0 > 60*90: # 90 minutes extra
                     print("Condensation taking too long. Aborting process.")
                     self.set_pid_off()
-                    return
+                    return 
                 else:
                     continue
                     
         
-        return
+        return # Max runtime if abort = 3h
     
     
     def force_abort(self):
@@ -1028,39 +1048,69 @@ class TempControl_CTC100(GenericInstrument):
     
     def run_ctc100_automatic_cycle(self, start_evaporation_time = False, start_condensation_time = False):
     
-        def run_ctc100_automatic_cycle_thread(evap_time = False, cond_time = False):
+        def run_ctc100_automatic_cycle_thread(evap_time = False, cond_time = False): # function to run in thread (in the background)
             
             
             if evap_time is False or cond_time is False:
                 print("Both start_evaporation_time and start_condensation_time must be specified (in hours).")
                 return None
             
+            
+
             start_evap = evap_time * 60 # time in minutes
             start_cond = cond_time * 60 # time in minutes
-            evap_ran_today = False
+            evap_ran_today = False 
             cond_ran_today = False
+            monitor_after_evap = False
+            t_condensation = None
+            t_evap = None
         
             
             while True:
-                now = self.get_local_system_time()
+                now = self.get_local_system_time() # local time of system (bound to internet) in minutes
                 
                 
-                if now < 240: # reset at new day
-                    evap_ran_today = False
+                if 120 < now < 240: # reset at new day 2:00-4:00am giving a window incase condensation is aborting late
+                    evap_ran_today = False # flags to allow running of scheduled processes only once per day
                     cond_ran_today = False
+                    monitor_after_evap = False
                 
+                cond_ok = (t_condensation is not None) and ((time.time() - t_condensation) > 4*60*60) # when code runs for the first time, it doesnt evap and goes straight to condensation when the time is right
                 
-                if abs(now - start_evap) <= 15 and not evap_ran_today:
+                if abs(now - start_evap) <= 15 and (not evap_ran_today) and cond_ok: # check if time is within 15 min of scheduled evap time + check if evap has not run today + check if condensation has been running for at least 4h
                     print("Starting scheduled evaporation process")
                     self.run_evaporation()
+                    t_evap = time.time()
                     evap_ran_today = True
+                    monitor_after_evap = True # Monitor evap temp throughout the day to make sure the cryo doesnt run out of helium
+                    
+                    
+                if monitor_after_evap and (not cond_ran_today):
+                    Tr = float(self.get_channel_value(channel="Tr"))
+                    if Tr > 3.0:
+                        print("Tr > 3K after evaporation -> starting immediate condensation") # If helium runout, start condensation now, and wont start again when cond time is there. Send alert message with hold time 
+                        self.run_condensation()
+                        t_condensation = time.time()
+                        cond_ran_today = True
+
+                        held_s = time.time() - t_evap
+                        print(f"Held cryo for {held_s/3600:.2f} hours")
+                        
+                        """Slack notification: Evaporation held for {held_s/3600:.2f} hours, immediate condensation started.
+                        """
+                        
+                        monitor_after_evap = False
+                    
+                    
+                    
                 
-                if abs(now - start_cond) <= 15 and not cond_ran_today:
+                if abs(now - start_cond) <= 15 and (not cond_ran_today): # check if time is within 15 min of scheduled cond time + check if cond has not run today
                     print("Starting scheduled condensation process")
+                    t_condensation = time.time()
                     self.run_condensation()
                     cond_ran_today = True
                 
-                time.sleep(60*10)
+                time.sleep(60*10) # Check every 10 minutes
                     
             
             return
@@ -1079,3 +1129,4 @@ if __name__ == '__main__':
         print("Connected to CTC100 interactive window session")
         print("\n>>>> USE TEMP CONTROLLER OBJECT AS tc <<<<\n")
         import code; code.interact(local=locals())
+# %%

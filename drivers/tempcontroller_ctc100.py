@@ -30,7 +30,8 @@ class TempControl_CTC100(GenericInstrument):
         self.data_length = 100
         self.data_names = self.get_data("names")
         self.data = np.zeros((len(self.data_names), self.data_length))
-
+        self._auto_cycle_stop = None
+        self._auto_cycle_thread = None
         self.is_monitoring = False
 
     def __enter__(self):
@@ -1048,6 +1049,13 @@ class TempControl_CTC100(GenericInstrument):
     
     
     def run_ctc100_automatic_cycle(self, start_evaporation_time = False, start_condensation_time = False):
+        
+        if getattr(self, "_auto_cycle_thread", None) and self._auto_cycle_thread.is_alive():
+            print("Auto cycle already running. Stop it first with stop_ctc100_automatic_cycle().")
+            return
+    
+        stop_event = threading.Event()
+        self._auto_cycle_stop = stop_event    
     
         def run_ctc100_automatic_cycle_thread(evap_time = False, cond_time = False): # function to run in thread (in the background)
             
@@ -1068,6 +1076,14 @@ class TempControl_CTC100(GenericInstrument):
         
             
             while True:
+                
+                
+                if float(self.get_channel_value(channel="Tr")) > 10.00:
+                    """Message error slack channel"""
+                    print("Tr way too high, please check before running automatic cryo cycle")
+                    return 
+                
+                
                 now = self.get_local_system_time() # local time of system (bound to internet) in minutes
                 
                 
@@ -1116,11 +1132,31 @@ class TempControl_CTC100(GenericInstrument):
             
             return
 
+        
         t = threading.Thread(target=run_ctc100_automatic_cycle_thread, args=(start_evaporation_time, start_condensation_time), daemon=True)
+        self._auto_cycle_thread = t
         t.start()
         
         return
+    
+    def stop_ctc100_automatic_cycle(self, join_timeout=5.0):
 
+        stop_event = getattr(self, "_auto_cycle_stop", None)
+        t = getattr(self, "_auto_cycle_thread", None)
+
+        if not t or not t.is_alive():
+            print("Auto cycle is not running.")
+            return
+
+        stop_event.set()
+        # Optional: wait for clean exit
+        t.join(timeout=join_timeout)
+
+        if t.is_alive():
+            print("Stop signal sent, but thread is still running (likely inside a blocking call).")
+        else:
+            print("Auto cycle stopped.")
+    
     
 
 

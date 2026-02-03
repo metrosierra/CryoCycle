@@ -1019,7 +1019,7 @@ class TempControl_CTC100(GenericInstrument):
         t0 = time.time()
         while True:
             if float(self.get_channel_value(channel = "Tp")) > 38.000 and 3.00 < float(self.get_channel_value(channel = "Tr")) < 4.000: # checking if Tp is at the setpoint and that Tr is in the normal range
-                print("Condensation complete. Cryo is ready. Happy Experimenting!")
+                print("Condensation complete. Cryo is ready!")
                 break
             else:
                 time.sleep(60*5) # for the nect 1h30, check every 5 minutes to see if Tp and Tr are at the right values, if not, abort and send slack message.

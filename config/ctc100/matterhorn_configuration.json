@@ -1,0 +1,123 @@
+{
+  "inputs": {
+    "Tp":  { 
+        "Sensor": "Diode", "Range": "2.5V", "Current": "Forward", "Power": "Auto",
+        "Alarm": { "Min": "0", "Max": "100", "Relay": "None", "Lag": "0", "Sound": "None", "Latch": "Off", "Mode": "Level", "Output": "hpump" }
+    },
+
+    "Tr":  { "Sensor": "ROX",   "Range": "Auto", "Current": "AC", "Power": "Auto",
+        "Alarm": { "Min": "0", "Max": "5", "Relay": "None", "Lag": "0", "Sound": "None", "Latch": "Off", "Mode": "Level", "Output": "switch" }
+    },
+
+    "Tsw": { "Sensor": "Diode", "Range": "2.5V", "Current": "Forward", "Power": "Auto",
+        "Alarm": { "Min": "0", 	"Max": "100", "Relay": "None", "Lag": "0", "Sound": "None", "Latch": "Off", "Mode": "Level", "Output": "switch"}
+    }
+  },
+
+
+
+
+  "outputs": {
+
+    "hpump": {
+      "Units": "V",
+      "Range": "50V 2A",
+      "LowLmt": "0",
+      "HiLmt": "30.0",
+      "IOType": "Meas out",
+      "PID": {
+        "Input": "Tp",
+        "Setpoint": "40.0",
+        "Ramp": "0.0",
+        "P": "2.0", "I": "1.000e-4", "D": "0.001000"
+      }
+    },
+
+
+
+    "switch": {
+      "Units": "V",
+      "LowLmt": "0.0",
+      "HiLmt": "5.0",
+      "IOType": "Meas out", 
+      "PID": {
+        "Input": "Tsw",
+        "Setpoint": "20.0",
+        "Ramp": "0.0",
+        "P": "4.0", "I": "0.1", "D": "0.01000"
+      }
+    }
+  },
+
+  "temperature_conditions": {
+
+    "evaporation": {
+      "Tp": 39.000, 
+      "mini_cond_wait_time": 5400,
+      "evap_wait_time": 3600,
+      "Tr_cold": 1,
+      "extra_evap_time": 300,
+      "emergency_cond_wait_time": 7200,
+      "Tr_warm_low_end": 3.00,
+      "Tr_warm_high_end": 4.00,
+      "extra_cond_time": 1800
+    },
+
+    "condensation": {
+      "cond_wait_time": 5400,
+      "Tp": 39.000,
+      "Tr_warm_low_end": 3.00,
+      "Tr_warm_high_end": 4.00,
+      "extra_cond_time": 300
+
+    },
+
+    "cryo_cycle": {
+      "Tr_cold_abort_temp": 10.00,
+      "reseting_time_1": 120,
+      "reseting_time_2": 240,
+      "cond_min_elapsed_time" : 14400,
+      "time_within_range": 15,
+      "evap_monitering_temp": 3,
+      "cycle_check_time": 600
+    },
+
+
+    "_comment_temperature_conditions": {
+
+      "evaporation": {
+        "Tp": "Tp should remain above this temperature to start evaporation process. FLOAT", 
+        "mini_cond_wait_time": "Time for condinsation if evap temp requirements havnt been met yet. SECONDS",
+        "evap_wait_time": "Time it should take to evaporate. SECONDS",
+        "Tr_cold": "Temperature that Tr should be below e.g. 1. FLOAT",
+        "extra_evap_time": "small time increment that the code will loop over a few times in case evap takes a little longer. SECONDS",
+        "emergency_cond_wait_time": "time it takes to condensate, this is applicable if evap failed, so it tries to recondensate for safety. SECONDS",
+        "Tr_warm_low_end": "Lower end window that Tr should be when cryo has been condensed. FLOAT",
+        "Tr_warm_high_end": "Higher end window that Tr should be when cryo has been condense. FLOAT",
+        "extra_cond_time": "Extra time for condensation if it hasnt met some of these conditions. SECONDS"
+      },
+
+      "_comment_condensation": {
+        "cond_wait_time": "Time it should take to condense. SECONDS",
+        "Tp": "Temp that Tp should be above after condensation. FLOAT",
+        "Tr_warm_low_end": "Lower end window that Tr should be when cryo has been condensed. FLOAT",
+        "Tr_warm_high_end": "Higher end window that Tr should be when cryo has been condense. FLOAT",
+        "extra_cond_time": "Extra time in case condensation temperatures havnt been met yet. SECONDS"
+
+      },
+
+      "_comment_cryo_cycle": {
+        "Tr_cold_abort_temp": "If Tr gets above this temperature, full abort system. FLOAT",
+        "reseting_time_1": "Lower end time window of when the program resets for the day. MINUTES",
+        "reseting_time_2": "Upper end time window of when the program resets for the day. MINUTES",
+        "cond_min_elapsed_time" : "Minimum time elapsed since condensation started before running evap, because the cryo needs to have enough condensed helium inside. SECONDS",
+        "time_within_range": "± time window when a process should start. MINUTES",
+        "evap_monitering_temp": "Tr temp check temperature. If during evap, Tr gets above this temp, start cond. FLOAT",
+        "cycle_check_time": "Time between checks. Checks every x minutes what global time it is to see if it is near a process time. SECONDS"
+      }
+
+
+    }
+  }
+
+}

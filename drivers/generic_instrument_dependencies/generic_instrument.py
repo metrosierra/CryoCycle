@@ -159,13 +159,6 @@ class GenericInstrument:
         dt = datetime.now()
         return dt.hour * 60 + dt.minute
     
-    
-    def load_json_config_file(self, json_path: str = None) -> dict:
-        if json_path is None:
-            json_path = self._default_initial_config_path()
-        with open(json_path, "r") as f:
-            return json.load(f)
-
 
     def send_message_to_slack(self, message = False, webhook_url= False):
         

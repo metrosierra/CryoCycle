@@ -21,7 +21,7 @@
 
     "hpump": {
       "Units": "V",
-      "Range": "50V 2A",
+      "Range": "50V .2A",
       "LowLmt": "0",
       "HiLmt": "30.0",
       "IOType": "Meas out",

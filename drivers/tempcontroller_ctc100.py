@@ -659,7 +659,9 @@ class TempControl_CTC100(GenericInstrument):
             print("Channel not specified. Please provide 'Tp', 'Tr', 'T1s', 'Tsw', 'hpump', or 'switch'.")
             return None
         
-        return self.query(f"{channel}.Value?")
+        resp = self.query(f"{channel}.Value?")
+
+        return resp.split("=", 1)[1].strip()
     
     def set_input_sensor(self, sensor = False, channel = False): # Sensor types, Diode, ROX, RTD, Therm
         if channel:
@@ -891,8 +893,7 @@ class TempControl_CTC100(GenericInstrument):
                         max_val=str(alarm.get("Max", 0)),
                         channel=ch,
                     )
-                if "Relay" in alarm:
-                    self.set_alarm_relay(relay_status=str(alarm["Relay"]), channel=ch)
+                
                 if "Lag" in alarm:
                     self.set_alarm_lag(lag_time_s=str(alarm["Lag"]), channel=ch)
                 if "Sound" in alarm:
@@ -1168,7 +1169,7 @@ class TempControl_CTC100(GenericInstrument):
 
 
 if __name__ == '__main__':
-    with TempControl_CTC100('ASRL/dev/ttyACM0::INSTR', 'CTC100') as tc: #ASRL/dev/ttyUSB0::INSTR
+    with TempControl_CTC100('ASRL/dev/ttyUSB0::INSTR', 'CTC100') as tc: #ASRL/dev/ttyUSB0::INSTR  ASRL/dev/ttyACM0::INSTR
         print("Connected to CTC100 interactive window session")
         print("\n>>>> USE TEMP CONTROLLER OBJECT AS tc <<<<\n")
         import code; code.interact(local=locals())

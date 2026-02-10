@@ -1143,26 +1143,7 @@ class TempControl_CTC100(GenericInstrument):
     
     
     
-    def stop_ctc100_automatic_cycle(self, join_timeout=5.0):
-
-        stop_event = getattr(self, "_auto_cycle_stop", None)
-        t = getattr(self, "_auto_cycle_thread", None)
-
-        if not t or not t.is_alive():
-            print("Auto cycle is not running.")
-            return
-        if stop_event is None:
-            print("No stop event found; cannot request stop cleanly.")
-            return
-        
-        stop_event.set()
-        # Optional: wait for clean exit
-        t.join(timeout=join_timeout)
-
-        if t.is_alive():
-            print("Stop signal sent, but thread is still running (likely inside a blocking call).")
-        else:
-            print("Auto cycle stopped.")
+    
     
     
 

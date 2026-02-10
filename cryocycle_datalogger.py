@@ -191,6 +191,13 @@ class CryoCycler:
                 print("Starting scheduled evaporation process")
                 evap_status = self.tempcontroller.run_evaporation(stop_event=stop_event, json_config_file=self.cryo_config)
                 self.slack.send_message_to_slack(error_code= evap_status, json_slack=self.slack_config)
+                if evap_status == 3:
+                    cond_ran_today = True
+                if evap_status == 4:
+                    
+                    print("Hard abort. Auto cycler stopped, please check cryo.")
+                    self.tempcontroller.stop_ctc100_automatic_cycle()
+                    return    
                 t_evap = time.time()
                 evap_ran_today = True
                 monitor_after_evap = True # Monitor evap temp throughout the day to make sure the cryo doesnt run out of helium
@@ -204,9 +211,14 @@ class CryoCycler:
                     self.slack.send_message_to_slack(error_code= monitor_cond_status, json_slack=self.slack_config)
                     t_condensation = time.time()
                     cond_ran_today = True
-
+                    
                     held_s = time.time() - t_evap
                     print(f"Held cryo for {held_s/3600:.2f} hours")
+                    if monitor_cond_status == 5:
+                        print("Hard aborted condensation process. Stopping auto cycler.")
+                        self.tempcontroller.stop_ctc100_automatic_cycle()
+                        return
+                    
                     
                     """Slack notification: Evaporation held for {held_s/3600:.2f} hours, immediate condensation started.
                     """
@@ -222,7 +234,12 @@ class CryoCycler:
                 cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
                 self.slack.send_message_to_slack(error_code= cond_status, json_slack=self.slack_config)
                 cond_ran_today = True
-            
+                if monitor_cond_status == 5:
+                        print("Hard aborted condensation process. Stopping auto cycler.")
+                        self.tempcontroller.stop_ctc100_automatic_cycle()
+                        return
+                
+                
             stop_event.wait(time_between_time_of_day_check)
             # time.sleep(60*10) # Check every 10 minutes
                 

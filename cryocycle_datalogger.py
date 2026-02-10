@@ -14,7 +14,7 @@ if abs_path not in sys.path:
     sys.path.insert(0, abs_path)
 
 from drivers.tempcontroller_ctc100 import TempControl_CTC100
-
+from drivers.generic_instrument_dependencies.generic_instrument import GenericInstrument
 from drivers.liveplotter_heavy import LivePlotAgent 
 from drivers.slack import Slack
 

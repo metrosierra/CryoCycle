@@ -247,7 +247,7 @@ class CryoCycler:
         return
     
     
-    def run_ctc100_automatic_cycle(self, start_evaporation_time: int, start_condensation_time: int, json_cryo_config_path):
+    def run_ctc100_automatic_cycle(self, start_evaporation_time: int, start_condensation_time: int, json_cryo_config_path, json_cryo_slack_config_path):
         
         """
         
@@ -278,7 +278,7 @@ class CryoCycler:
         
 
         
-        t = threading.Thread(target=self.run_ctc100_automatic_cycle_thread, args=(stop_event, start_evaporation_time, start_condensation_time, json_cryo_config_path), daemon=True)
+        t = threading.Thread(target=self.run_ctc100_automatic_cycle_thread, args=(stop_event, start_evaporation_time, start_condensation_time, json_cryo_config_path, json_cryo_slack_config_path), daemon=True)
         self._auto_cycle_thread = t
         t.start()
         

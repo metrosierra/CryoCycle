@@ -160,19 +160,7 @@ class GenericInstrument:
         return dt.hour * 60 + dt.minute
     
 
-    def send_message_to_slack(self, message = False, webhook_url= False):
-        
-        if not message or not webhook_url:
-            logging.error("Slack message or webhook URL not provided.")
-            return
-        
-        url = webhook_url 
-        payload = {
-            "text": message
-        }
-        # r = requests.post(url, json=payload)
-        #r.raise_for_status()
-        return
+
     
 
 

@@ -16,6 +16,7 @@ if abs_path not in sys.path:
 from drivers.tempcontroller_ctc100 import TempControl_CTC100
 from drivers.generic_instrument_dependencies.generic_instrument import GenericInstrument
 from drivers.liveplotter_heavy import LivePlotAgent 
+from drivers.slack import Slack
 
 json_matterhorn_config_path = ".json" 
 
@@ -26,7 +27,7 @@ class CryoCycler:
     def __init__(self, config_dir = config_relative_path):
 
         self.config_dir = config_dir
-        self.config = self.load_config()
+        self.config = self.load_config('config.json')
         self.handshake()
 
         if self.tempcontroller: 
@@ -34,6 +35,7 @@ class CryoCycler:
             self.data_logging_cycle_s = 20
             self.tempcontroller.start_logging(refresh_s = self.data_monitoring_refresh_s)
 
+        self.slack = Slack(config_dir="config")
         self.liveplot_tempcontroller()
 
 
@@ -54,8 +56,8 @@ class CryoCycler:
         self.__exit__(None, None, None)
         return
 
-    def load_config(self):
-        config_path = os.path.join(self.config_dir, 'config.json')
+    def load_config(self, config_name=False):
+        config_path = os.path.join(self.config_dir, config_name)
         with open(config_path, 'r') as f:
             self.config = json.load(f)
         return self.config
@@ -111,7 +113,7 @@ class CryoCycler:
     
     
     
-    def run_ctc100_automatic_cycle_thread(self, stop_event = None, evap_time = False, cond_time = False, json_location = None): # function to run in thread (in the background)
+    def run_ctc100_automatic_cycle_thread(self, stop_event = None, evap_time = False, cond_time = False, json_location = None, slack_json_location = None): # function to run in thread (in the background)
         """
         Docstring for run_ctc100_automatic_cycle_thread
         
@@ -128,7 +130,11 @@ class CryoCycler:
         if json_location is None:
             print("Please provide a json config file of the conditions for your cryo. And example should be found alongside this repo.")
             return 
-        
+        if slack_json_location is None:
+            print("Please provide a json file of the error codes and slack webhook url.")
+            return
+            
+        self.slack_config = self.load_config(slack_json_location)
         self.cryo_config = self.load_config(json_location) 
         
         self.tempcontroller.set_initial_input_config(self.cryo_config)
@@ -164,10 +170,11 @@ class CryoCycler:
         while not stop_event.is_set():
             
             
-            if float(self.get_channel_value(channel="Tr")) > Tr_abort_temp_thresh:
+            if float(self.tempcontroller.get_channel_value(channel="Tr")) > Tr_abort_temp_thresh:
                 """Message error slack channel"""
                 print("Tr way too high, please check before running automatic cryo cycle")
-                return 
+                self.slack.send_message_to_slack(error_code = 6, json_slack=self.slack_config)
+                return 6
             
             
             now = self.get_local_system_time() # local time of system (bound to internet) in minutes
@@ -182,7 +189,8 @@ class CryoCycler:
             
             if abs(now - start_evap) <= cycle_time_window and (not evap_ran_today) and cond_ok: # check if time is within 15 min of scheduled evap time + check if evap has not run today + check if condensation has been running for at least 4h
                 print("Starting scheduled evaporation process")
-                self.tempcontroller.run_evaporation(stop_event=stop_event)
+                evap_status = self.tempcontroller.run_evaporation(stop_event=stop_event, json_config_file=self.cryo_config)
+                self.slack.send_message_to_slack(error_code= evap_status, json_slack=self.slack_config)
                 t_evap = time.time()
                 evap_ran_today = True
                 monitor_after_evap = True # Monitor evap temp throughout the day to make sure the cryo doesnt run out of helium
@@ -192,7 +200,8 @@ class CryoCycler:
                 Tr = float(self.tempcontroller.get_channel_value(channel="Tr"))
                 if Tr > Tr_monitoring_temperature_thresh:
                     print("Tr > 3K after evaporation -> starting immediate condensation") # If helium runout, start condensation now, and wont start again when cond time is there. Send alert message with hold time 
-                    self.tempcontroller.run_condensation(stop_event=stop_event)
+                    monitor_cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
+                    self.slack.send_message_to_slack(error_code= monitor_cond_status, json_slack=self.slack_config)
                     t_condensation = time.time()
                     cond_ran_today = True
 
@@ -210,7 +219,8 @@ class CryoCycler:
             if abs(now - start_cond) <= cycle_time_window and (not cond_ran_today): # check if time is within 15 min of scheduled cond time + check if cond has not run today
                 print("Starting scheduled condensation process")
                 t_condensation = time.time()
-                self.tempcontroller.run_condensation(stop_event=stop_event)
+                cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
+                self.slack.send_message_to_slack(error_code= cond_status, json_slack=self.slack_config)
                 cond_ran_today = True
             
             stop_event.wait(time_between_time_of_day_check)

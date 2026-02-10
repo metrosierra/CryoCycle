@@ -975,7 +975,7 @@ class TempControl_CTC100(GenericInstrument):
             if stop_event is not None and stop_event.is_set():
                 print("Evaporation stopped by user.")
                 self.set_pid_off()
-                return False
+                return 1
             
         
             if float(self.get_channel_value(channel = "Tp")) > Tp_start_thresh: # Check if Tp is high enough to start evaporation, if yes, start evaporation PID Switch On
@@ -991,12 +991,12 @@ class TempControl_CTC100(GenericInstrument):
                 if self._sleep_or_stop(stop_event, mini_cond_wait_s):
                     print("Evaporation stopped by user during pre-condensation wait.")
                     self.set_pid_off()
-                    return False
+                    return 1
                 
                 self.set_pid_off()
                 if abs(time.time() - t2) > 60*60*2: # 2 hours extra
                     """Slack notificaiton, evap starting conditions never met please check"""
-                    return False
+                    return 2
                 
         print("Starting Evaporation process")
         
@@ -1005,7 +1005,7 @@ class TempControl_CTC100(GenericInstrument):
         if self._sleep_or_stop(stop_event, evap_wait_s):
             print("Evaporation stopped by user during 1h evaporation wait.")
             self.set_pid_off()
-            return False
+            return 1
 
         
         t0 = time.time()  # Start timer to monitor how long its been since cold -ish
@@ -1014,19 +1014,19 @@ class TempControl_CTC100(GenericInstrument):
             if stop_event is not None and stop_event.is_set():
                 print("Evaporation stopped by user.")
                 self.set_pid_off()
-                return False
+                return 1
             
             if float(self.get_channel_value(channel = "Tr")) < Tr_cold_thresh:  # Check if Tr is low enough, if cold enough, get out of the loop, evaporation was successful
                 print("Evaporation complete. Cryo is cold. Happy Experimenting!")
                 t_evaporation = time.time()
-                return True
+                return 0
             
             else:
                 # time.sleep(60*5) 
                 if self._sleep_or_stop(stop_event, extra_evap_time_s):
                     print("Evaporation stopped by user during Tr checks.")
                     self.set_pid_off()
-                    return False
+                    return 1
                 
                 if abs(time.time() - t0) > 60*60: # 60 minutes extra
                     print("Evaporation taking too long. Aborting process.") # for the next 1h, check every 5 minutes to see if Tr is low enough, if Tr never gets to < 1K, attempt soft abort
@@ -1037,7 +1037,7 @@ class TempControl_CTC100(GenericInstrument):
                     if self._sleep_or_stop(stop_event, emergency_cond_s):
                         print("Evaporation stopped by user during soft-abort condensation.")
                         self.set_pid_off()
-                        return False
+                        return 1
 
                     
                     t1 = time.time()
@@ -1045,30 +1045,30 @@ class TempControl_CTC100(GenericInstrument):
                         if stop_event is not None and stop_event.is_set():
                             print("Evaporation stopped by user.")
                             self.set_pid_off()
-                            return False
+                            return 1
 
                         if float(self.get_channel_value(channel = "Tp")) > Tp_start_thresh and Tr_warm_low < float(self.get_channel_value(channel = "Tr")) < Tr_warm_high: # Checking if soft abort was successful by checking if Tp is back to setpoint and that Tr is back to normal range. 
                             """pring slack channel with alert message that evap aborted softly"""
-                            return False
+                            return 3
                         else:
                             # time.sleep(60*30)
                             if self._sleep_or_stop(stop_event, extra_cond_check_s):
                                 print("Evaporation stopped by user during soft-abort checks.")
                                 self.set_pid_off()
-                                return False
+                                return 1
 
                             if abs(time.time() - t1) > 60*60: # for the next 1h, check every 30 min to see if soft abort was successful, if not, hard abort
                                 print("resetting temp controller to safe state. Failed")
                                 self.set_pid_off()
                                 """ping slack channel with alert message that evap aborted hard"""
-                                return False
+                                return 4
                     
                 else:
                     continue 
             
         
                
-        return # Max runtime if aborts = 9h
+        # Max runtime if aborts = 9h
     
     
     def run_condensation(self, stop_event=None, json_config_file=None):
@@ -1098,33 +1098,33 @@ class TempControl_CTC100(GenericInstrument):
         if self._sleep_or_stop(stop_event, cond_wait_s):
             print("Condensation stopped by user during initial 1.5h wait.")
             self.set_pid_off()
-            return False
+            return 1
 
         t0 = time.time()
         while True:
             if stop_event is not None and stop_event.is_set():
                 print("Condensation stopped by user.")
                 self.set_pid_off()
-                return False
+                return 1
             
             if float(self.get_channel_value(channel = "Tp")) > Tp_end_thresh and Tr_warm_low < float(self.get_channel_value(channel = "Tr")) < Tr_warm_high: # checking if Tp is at the setpoint and that Tr is in the normal range
                 print("Condensation complete. Cryo is ready!")
-                break
+                return 0
             else:
                 # time.sleep(60*5) # for the nect 1h30, check every 5 minutes to see if Tp and Tr are at the right values, if not, abort and send slack message.
                 if self._sleep_or_stop(stop_event, extra_cond_time_s):
                     print("Condensation stopped by user during checks.")
                     self.set_pid_off()
-                    return False
+                    return 1
                 if time.time() - t0 > 60*90: # 90 minutes extra
                     print("Condensation taking too long. Aborting process.")
                     self.set_pid_off()
-                    return False
+                    return 5
                 else:
                     continue
                     
         
-        return # Max runtime if abort = 3h
+         # Max runtime if abort = 3h
     
     
     

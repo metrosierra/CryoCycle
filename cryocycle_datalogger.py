@@ -36,6 +36,7 @@ class CryoCycler:
             self.tempcontroller.start_logging(refresh_s = self.data_monitoring_refresh_s)
 
         self.slack = Slack(config_dir="config")
+        
         self.liveplot_tempcontroller()
 
 
@@ -177,7 +178,7 @@ class CryoCycler:
                 return 6
             
             
-            now = self.get_local_system_time() # local time of system (bound to internet) in minutes
+            now = self.tempcontroller.get_local_system_time() # local time of system (bound to internet) in minutes
             
             
             if reset_time_for_new_day_1 < now < reset_time_for_new_day_2: # reset at new day 2:00-4:00am giving a window incase condensation is aborting late
@@ -295,3 +296,7 @@ if __name__ == '__main__':
     with CryoCycler()as cc:
         print("\n>>>> USE CRYOCYCLER OBJECT AS cc <<<<\n")
         import code; code.interact(local=locals())
+
+
+
+#         

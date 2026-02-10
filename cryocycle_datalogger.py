@@ -14,7 +14,7 @@ if abs_path not in sys.path:
     sys.path.insert(0, abs_path)
 
 from drivers.tempcontroller_ctc100 import TempControl_CTC100
-from drivers.generic_instrument_dependencies.generic_instrument import GenericInstrument
+
 from drivers.liveplotter_heavy import LivePlotAgent 
 from drivers.slack import Slack
 
@@ -299,4 +299,4 @@ if __name__ == '__main__':
 
 
 
-#         
+# run_ctc100_automatic_cycle(start_evaporation_time= 7, start_condensation_time= 20, json_cryo_config_path= "ctc100/matterhorn/matterhorn_configuration.json", json_cryo_slack_config_path= "ctc100/matterhorn/slack_integration.json")        

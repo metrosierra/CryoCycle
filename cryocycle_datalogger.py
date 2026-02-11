@@ -322,4 +322,4 @@ if __name__ == '__main__':
 
 
 
-# run_ctc100_automatic_cycle(start_evaporation_time= 7, start_condensation_time= 17.5, json_cryo_config_path= "ctc100/matterhorn/matterhorn_configuration.json", json_cryo_slack_config_path= "ctc100/matterhorn/slack_integration.json")        
+# run_ctc100_automatic_cycle(start_evaporation_time= 7, start_condensation_time= 20, json_cryo_config_path= "ctc100/matterhorn/matterhorn_configuration.json", json_cryo_slack_config_path= "ctc100/matterhorn/slack_integration.json")        

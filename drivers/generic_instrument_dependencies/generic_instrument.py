@@ -35,6 +35,7 @@ class GenericInstrument:
         self.updated = False
         ### when we want all the data over time
         self.accumulate = False
+        self._io_lock = threading.Lock()
 
     def __enter__(self):
         return self
@@ -102,8 +103,9 @@ class GenericInstrument:
     def query(self, command):
         if self.client is not None:
             try:
-                response = self.client.query(command)
-                return response
+                with self._io_lock:
+                    response = self.client.query(command)
+                    return response
             except VisaIOError as e:
                 logging.error(f"I/O error on query command: {command}")
                 return None

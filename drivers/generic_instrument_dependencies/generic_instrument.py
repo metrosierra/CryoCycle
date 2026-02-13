@@ -86,7 +86,7 @@ class GenericInstrument:
                     print("I/O error on query command:", command)
             else:
                 try:
-                    self.client.write(command)
+                    self.client.query(command)
                 except VisaIOError as e:
                     print("I/O error on write command:", command)
             self.queue.task_done()

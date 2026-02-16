@@ -193,7 +193,11 @@ class CryoCycler:
             if abs(now - start_evap) <= cycle_time_window and (not evap_ran_today) and cond_ok: # check if time is within 15 min of scheduled evap time + check if evap has not run today + check if condensation has been running for at least 4h
                 print("Starting scheduled evaporation process")
                 evap_status = self.tempcontroller.run_evaporation(stop_event=stop_event, json_config_file=self.cryo_config)
-                self.slack.send_message_to_slack(error_code= evap_status, json_slack=self.slack_config)
+                if evap_status == 0:
+                    continue
+                else:
+                    self.slack.send_message_to_slack(error_code= evap_status, json_slack=self.slack_config)
+
                 if evap_status == 3:
                     cond_ran_today = True
                 if evap_status == 4:
@@ -211,7 +215,11 @@ class CryoCycler:
                 if Tr > Tr_monitoring_temperature_thresh:
                     print("Tr > 3K after evaporation -> starting immediate condensation") # If helium runout, start condensation now, and wont start again when cond time is there. Send alert message with hold time 
                     monitor_cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
-                    self.slack.send_message_to_slack(error_code= monitor_cond_status, json_slack=self.slack_config)
+                    if monitor_cond_status == 0:
+                        continue
+                    else:
+                        self.slack.send_message_to_slack(error_code= monitor_cond_status, json_slack=self.slack_config)
+
                     t_condensation = time.time()
                     cond_ran_today = True
                     
@@ -235,7 +243,10 @@ class CryoCycler:
                 print("Starting scheduled condensation process")
                 t_condensation = time.time()
                 cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
-                self.slack.send_message_to_slack(error_code= cond_status, json_slack=self.slack_config)
+                if cond_status == 0:
+                    continue
+                else:
+                    self.slack.send_message_to_slack(error_code= cond_status, json_slack=self.slack_config)
                 cond_ran_today = True
                 if cond_status == 5:
                         print("Hard aborted condensation process. Stopping auto cycler.")
@@ -322,4 +333,4 @@ if __name__ == '__main__':
 
 
 
-# run_ctc100_automatic_cycle(start_evaporation_time= 7, start_condensation_time= 20, json_cryo_config_path= "ctc100/matterhorn/matterhorn_configuration.json", json_cryo_slack_config_path= "ctc100/matterhorn/slack_integration.json")        
+# cc.run_ctc100_automatic_cycle(start_evaporation_time= 7, start_condensation_time= 20, json_cryo_config_path= "ctc100/matterhorn/matterhorn_configuration.json", json_cryo_slack_config_path= "ctc100/matterhorn/slack_integration.json")        

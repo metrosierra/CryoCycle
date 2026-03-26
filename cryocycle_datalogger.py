@@ -4,6 +4,7 @@ import numpy as np
 import json
 import threading
 import time
+import datetime
 
 
 config_relative_path = 'config/'
@@ -204,6 +205,7 @@ class CryoCycler:
                     self.tempcontroller.stop_ctc100_automatic_cycle()
                     return    
                 t_evap = time.time()
+                print(f"Time: {datetime.now.strftime("%H:%M")}")
                 evap_ran_today = True
                 monitor_after_evap = True # Monitor evap temp throughout the day to make sure the cryo doesnt run out of helium
                 
@@ -212,6 +214,7 @@ class CryoCycler:
                 Tr = float(self.tempcontroller.get_channel_value(channel="Tr"))
                 if Tr > Tr_monitoring_temperature_thresh:
                     print("Tr > 3K after evaporation -> starting immediate condensation") # If helium runout, start condensation now, and wont start again when cond time is there. Send alert message with hold time 
+                    print(f"Time: {datetime.now.strftime("%H:%M")}")
                     monitor_cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
                     if monitor_cond_status != 0:
                         self.slack.send_message_to_slack(error_code= monitor_cond_status, json_slack=self.slack_config)
@@ -241,6 +244,7 @@ class CryoCycler:
                 cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
                 self.slack.send_message_to_slack(error_code= cond_status, json_slack=self.slack_config)
                 cond_ran_today = True
+                print(f"Time: {datetime.now.strftime("%H:%M")}")
                 if cond_status == 5:
                         print("Hard aborted condensation process. Stopping auto cycler.")
                         self.tempcontroller.stop_ctc100_automatic_cycle()

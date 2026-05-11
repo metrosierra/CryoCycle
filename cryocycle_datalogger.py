@@ -224,6 +224,7 @@ class CryoCycler:
                     
                     held_s = time.time() - t_evap
                     print(f"Held cryo for {held_s/3600:.2f} hours")
+                    self.slack.send_message_to_slack(error_code=3, json_slack=self.slack_config)
                     if monitor_cond_status == 5:
                         print("Hard aborted condensation process. Stopping auto cycler.")
                         self.tempcontroller.stop_ctc100_automatic_cycle()

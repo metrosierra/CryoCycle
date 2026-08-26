@@ -60,7 +60,7 @@ class CryoCycler:
         self.__exit__(None, None, None)
         return
 
-    def load_config(self, config_name=False):
+    def load_config(self, config_name='config.json'):
         config_path = os.path.join(self.config_dir, config_name)
         with open(config_path, 'r') as f:
             self.config = json.load(f)
@@ -177,10 +177,14 @@ class CryoCycler:
             if float(self.tempcontroller.get_channel_value(channel="Tr")) > Tr_abort_temp_thresh:
                 """Message error slack channel"""
                 print("Tr way too high, please check before running automatic cryo cycle")
-                self.slack.send_message_to_slack(error_code = 6, json_slack=self.slack_config)
-                return 6
-            
-            
+                try:
+                    self.slack.send_message_to_slack(error_code = 6, json_slack=self.slack_config)
+                    return 6
+                except Exception as e:
+                    print(f"Error sending message to Slack: {e}")
+                    print("Continuing without Slack notification.")
+                    return 6
+
             now = self.tempcontroller.get_local_system_time() # local time of system (bound to internet) in minutes
             
             
@@ -195,7 +199,13 @@ class CryoCycler:
                 print("Starting scheduled evaporation process")
                 evap_status = self.tempcontroller.run_evaporation(stop_event=stop_event, json_config_file=self.cryo_config)
                 if evap_status != 0:
-                    self.slack.send_message_to_slack(error_code= evap_status, json_slack=self.slack_config)
+                    try:
+                        self.slack.send_message_to_slack(error_code= evap_status, json_slack=self.slack_config)
+
+                    except Exception as e:
+                        print(f"Error sending message to Slack: {e}")
+                        print("Continuing without Slack notification.")
+                        pass
 
                 if evap_status == 3:
                     cond_ran_today = True
@@ -217,14 +227,26 @@ class CryoCycler:
                     print(f"Time: {datetime.now().strftime("%H:%M")}")
                     monitor_cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
                     if monitor_cond_status != 0:
-                        self.slack.send_message_to_slack(error_code= monitor_cond_status, json_slack=self.slack_config)
+                        try:
+                            self.slack.send_message_to_slack(error_code= monitor_cond_status, json_slack=self.slack_config)
+                        except Exception as e:
+                            print(f"Error sending message to Slack: {e}")
+                            print("Continuing without Slack notification.")
+                            pass
 
                     t_condensation = time.time()
                     cond_ran_today = True
                     
                     held_s = time.time() - t_evap
                     print(f"Held cryo for {held_s/3600:.2f} hours")
-                    self.slack.send_message_to_slack(error_code=3, json_slack=self.slack_config)
+
+                    try:
+                        self.slack.send_message_to_slack(error_code=3, json_slack=self.slack_config)
+                    except Exception as e:
+                        print(f"Error sending message to Slack: {e}")
+                        print("Continuing without Slack notification.")
+                        pass
+
                     if monitor_cond_status == 5:
                         print("Hard aborted condensation process. Stopping auto cycler.")
                         self.tempcontroller.stop_ctc100_automatic_cycle()
@@ -243,7 +265,12 @@ class CryoCycler:
                 print("Starting scheduled condensation process")
                 t_condensation = time.time()
                 cond_status = self.tempcontroller.run_condensation(stop_event=stop_event, json_config_file=self.cryo_config)
-                self.slack.send_message_to_slack(error_code= cond_status, json_slack=self.slack_config)
+                try:
+                    self.slack.send_message_to_slack(error_code= cond_status, json_slack=self.slack_config)
+                except Exception as e:
+                    print(f"Error sending message to Slack: {e}")
+                    print("Continuing without Slack notification.")
+                    pass
                 cond_ran_today = True
                 print(f"Time: {datetime.now().strftime("%H:%M")}")
                 if cond_status == 5:
@@ -265,7 +292,7 @@ class CryoCycler:
         
         example run: run_ctc100_automatic_cycle(start_evaporation_time= 6, start_condensation_time= 21, json_cryo_config_path= "ctc100/matterhorn_configuration.json")
         
-        Start evopoartion and condinsaton time variables need to be an integer that represents military time, i.e. 6am = 6, 7:30am = 7.5, 5pm = 17h = 17...
+        Start evopoartion and condinsaton time variables need to be float that represents military time, i.e. 6am = 6, 7:30am = 7.5, 5pm = 17h = 17...
         
         Dont set condinsation time too late, at least before midnight (0).
         

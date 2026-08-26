@@ -27,7 +27,7 @@ class TempControl_CTC100(GenericInstrument):
         self.baud_rate = baud_rate
         self.client.baud_rate = self.baud_rate
 
-        self.data_length = 100
+        self.data_length = 2000
         self.data_names = self.get_data("names")
         self.data = np.zeros((len(self.data_names), self.data_length))
         self._auto_cycle_stop = None
@@ -828,8 +828,14 @@ class TempControl_CTC100(GenericInstrument):
         self.is_monitoring = False
         return
 
-    def start_logging(self, refresh_s = 1.0):
+    def start_logging(self, refresh_s = 1.0, n = 5000):
         self.is_monitoring = True
+        if n > 0 and isinstance(n, int):
+            self.data_length = n
+        else:
+            print(f"Invalid n: {n}. Must be a positive integer, using 5000 as default.")
+            self.data_length = 5000
+
         self.monitoring_thread = threading.Thread(target=self.__data_loop__, args=(refresh_s,), daemon=True)
         self.monitoring_thread.start()
         return 
@@ -950,7 +956,7 @@ class TempControl_CTC100(GenericInstrument):
             return False
         return stop_event.wait(seconds) # waits seconds, as soon as someone calls stop_event.set() during the wait, it returns true and wakes early, else it returns False after timeout. Its a condition variable / futex style trigger like wake-up system
     
-    def run_evaporation(self, stop_event=None, json_config_file = None):
+    def run_evaporation(self, pump_temp_check = True, stop_event=None, json_config_file = None):
         """Run evaporation"""
         
         if json_config_file is None:
@@ -979,7 +985,7 @@ class TempControl_CTC100(GenericInstrument):
                 return 1
             
         
-            if float(self.get_channel_value(channel = "Tp")) > Tp_start_thresh: # Check if Tp is high enough to start evaporation, if yes, start evaporation PID Switch On
+            if float(self.get_channel_value(channel = "Tp")) > Tp_start_thresh or not pump_temp_check: # Check if Tp is high enough to start evaporation, if yes, start evaporation PID Switch On
                 self.set_pid_status(status = "On", channel = "switch") 
              
                 break
